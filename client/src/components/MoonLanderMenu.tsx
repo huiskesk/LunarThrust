@@ -2,7 +2,7 @@ import { useMoonLander } from "@/lib/stores/useMoonLander";
 import { useAudio } from "@/lib/stores/useAudio";
 
 export function MoonLanderMenu() {
-  const { phase, level, score, startGame, nextLevel, reset } = useMoonLander();
+  const { phase, level, score, highScore, startGame, nextLevel, reset } = useMoonLander();
   const { toggleMute, isMuted } = useAudio();
   
   if (phase === "playing") return null;
@@ -47,6 +47,16 @@ export function MoonLanderMenu() {
             }}>
               MOON LANDER
             </h1>
+            {highScore > 0 && (
+              <div style={{ 
+                fontSize: '20px', 
+                marginBottom: '20px',
+                color: '#ffff00',
+                textShadow: '0 0 10px rgba(255,255,0,0.5)'
+              }}>
+                HIGH SCORE: {highScore}
+              </div>
+            )}
             <div style={{ 
               fontSize: '16px', 
               marginBottom: '40px',
@@ -122,8 +132,16 @@ export function MoonLanderMenu() {
             <div style={{ fontSize: '24px', marginBottom: '10px' }}>
               LEVEL: {level}
             </div>
-            <div style={{ fontSize: '32px', marginBottom: '40px' }}>
+            <div style={{ fontSize: '32px', marginBottom: '20px' }}>
               FINAL SCORE: {score}
+            </div>
+            <div style={{ 
+              fontSize: '20px', 
+              marginBottom: '40px',
+              color: '#ffff00',
+              textShadow: '0 0 10px rgba(255,255,0,0.5)'
+            }}>
+              HIGH SCORE: {highScore}
             </div>
             <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
               <button
@@ -153,8 +171,16 @@ export function MoonLanderMenu() {
             }}>
               LEVEL {level} COMPLETE!
             </h1>
-            <div style={{ fontSize: '32px', marginBottom: '40px' }}>
+            <div style={{ fontSize: '32px', marginBottom: '20px' }}>
               SCORE: {score}
+            </div>
+            <div style={{ 
+              fontSize: '20px', 
+              marginBottom: '40px',
+              color: '#ffff00',
+              textShadow: '0 0 10px rgba(255,255,0,0.5)'
+            }}>
+              HIGH SCORE: {highScore}
             </div>
             <button
               onClick={handleStart}

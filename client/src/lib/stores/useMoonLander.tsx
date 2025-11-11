@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { getLocalStorage, setLocalStorage } from "@/lib/utils";
 
 export type GamePhase = "menu" | "playing" | "gameOver" | "levelComplete";
 
@@ -12,6 +13,7 @@ export interface LandingPad {
   x: number;
   y: number;
   width: number;
+  bonus: number;
 }
 
 interface ShipState {
@@ -26,10 +28,11 @@ interface MoonLanderState {
   phase: GamePhase;
   level: number;
   score: number;
+  highScore: number;
   fuel: number;
   ship: ShipState;
   terrain: TerrainPoint[];
-  landingPad: LandingPad;
+  landingPads: LandingPad[];
   
   startGame: () => void;
   nextLevel: () => void;
@@ -43,12 +46,19 @@ interface MoonLanderState {
 }
 
 const INITIAL_FUEL = 1000;
+const HIGH_SCORE_KEY = "moonLanderHighScore";
+
+const loadHighScore = (): number => {
+  const saved = getLocalStorage(HIGH_SCORE_KEY);
+  return saved !== null ? saved : 0;
+};
 
 export const useMoonLander = create<MoonLanderState>()(
   subscribeWithSelector((set, get) => ({
     phase: "menu",
     level: 1,
     score: 0,
+    highScore: loadHighScore(),
     fuel: INITIAL_FUEL,
     ship: {
       x: 100,
@@ -58,7 +68,7 @@ export const useMoonLander = create<MoonLanderState>()(
       rotation: 0,
     },
     terrain: [],
-    landingPad: { x: 0, y: 0, width: 0 },
+    landingPads: [],
     
     startGame: () => {
       set({ 
@@ -77,12 +87,20 @@ export const useMoonLander = create<MoonLanderState>()(
     },
     
     nextLevel: () => {
-      const { level, score } = get();
+      const { level, score, highScore } = get();
       const bonusScore = 500 + (level * 100);
+      const newScore = score + bonusScore;
+      const newHighScore = Math.max(newScore, highScore);
+      
+      if (newHighScore > highScore) {
+        setLocalStorage(HIGH_SCORE_KEY, newHighScore);
+      }
+      
       set({ 
         phase: "playing",
         level: level + 1,
-        score: score + bonusScore,
+        score: newScore,
+        highScore: newHighScore,
         fuel: INITIAL_FUEL,
         ship: {
           x: 100,
@@ -115,9 +133,19 @@ export const useMoonLander = create<MoonLanderState>()(
     },
     
     addScore: (points) => {
-      set((state) => ({
-        score: state.score + points
-      }));
+      set((state) => {
+        const newScore = state.score + points;
+        const newHighScore = Math.max(newScore, state.highScore);
+        
+        if (newHighScore > state.highScore) {
+          setLocalStorage(HIGH_SCORE_KEY, newHighScore);
+        }
+        
+        return {
+          score: newScore,
+          highScore: newHighScore
+        };
+      });
     },
     
     generateTerrain: (level, canvasWidth, canvasHeight) => {
@@ -139,22 +167,42 @@ export const useMoonLander = create<MoonLanderState>()(
         terrain.push({ x, y });
       }
       
-      const landingSegment = Math.floor(segments * 0.3) + Math.floor(Math.random() * (segments * 0.4));
-      const padWidth = Math.max(60, 100 - level * 5);
-      const padY = terrain[landingSegment].y;
+      const numPads = Math.min(2 + Math.floor(level / 3), 3);
+      const landingPads: LandingPad[] = [];
+      const padSegments: number[] = [];
       
-      terrain[landingSegment].y = padY;
-      if (landingSegment + 1 < terrain.length) {
-        terrain[landingSegment + 1].y = padY;
+      for (let i = 0; i < numPads; i++) {
+        const minSeg = Math.floor(segments * 0.2);
+        const maxSeg = Math.floor(segments * 0.8);
+        let segment: number;
+        
+        do {
+          segment = minSeg + Math.floor(Math.random() * (maxSeg - minSeg));
+        } while (padSegments.some(s => Math.abs(s - segment) < segments / (numPads + 2)));
+        
+        padSegments.push(segment);
+        
+        const widthMultiplier = 1 / (i + 1);
+        const padWidth = Math.max(40, Math.floor((100 - level * 5) * widthMultiplier));
+        const bonus = (i + 1) * 0.5;
+        const padY = terrain[segment].y;
+        
+        terrain[segment].y = padY;
+        if (segment + 1 < terrain.length) {
+          terrain[segment + 1].y = padY;
+        }
+        
+        landingPads.push({
+          x: terrain[segment].x,
+          y: padY,
+          width: padWidth,
+          bonus
+        });
       }
       
       set({
         terrain,
-        landingPad: {
-          x: terrain[landingSegment].x,
-          y: padY,
-          width: padWidth
-        }
+        landingPads
       });
     },
     
@@ -172,7 +220,7 @@ export const useMoonLander = create<MoonLanderState>()(
           rotation: 0,
         },
         terrain: [],
-        landingPad: { x: 0, y: 0, width: 0 }
+        landingPads: []
       });
     }
   }))

@@ -4,28 +4,34 @@ interface AudioState {
   backgroundMusic: HTMLAudioElement | null;
   hitSound: HTMLAudioElement | null;
   successSound: HTMLAudioElement | null;
+  thrusterSound: HTMLAudioElement | null;
   isMuted: boolean;
   
   // Setter functions
   setBackgroundMusic: (music: HTMLAudioElement) => void;
   setHitSound: (sound: HTMLAudioElement) => void;
   setSuccessSound: (sound: HTMLAudioElement) => void;
+  setThrusterSound: (sound: HTMLAudioElement) => void;
   
   // Control functions
   toggleMute: () => void;
   playHit: () => void;
   playSuccess: () => void;
+  startThruster: () => void;
+  stopThruster: () => void;
 }
 
 export const useAudio = create<AudioState>((set, get) => ({
   backgroundMusic: null,
   hitSound: null,
   successSound: null,
+  thrusterSound: null,
   isMuted: true, // Start muted by default
   
   setBackgroundMusic: (music) => set({ backgroundMusic: music }),
   setHitSound: (sound) => set({ hitSound: sound }),
   setSuccessSound: (sound) => set({ successSound: sound }),
+  setThrusterSound: (sound) => set({ thrusterSound: sound }),
   
   toggleMute: () => {
     const { isMuted } = get();
@@ -69,6 +75,25 @@ export const useAudio = create<AudioState>((set, get) => ({
       successSound.play().catch(error => {
         console.log("Success sound play prevented:", error);
       });
+    }
+  },
+  
+  startThruster: () => {
+    const { thrusterSound, isMuted } = get();
+    if (thrusterSound && !isMuted) {
+      thrusterSound.loop = true;
+      thrusterSound.volume = 0.15;
+      thrusterSound.play().catch(error => {
+        console.log("Thruster sound play prevented:", error);
+      });
+    }
+  },
+  
+  stopThruster: () => {
+    const { thrusterSound } = get();
+    if (thrusterSound) {
+      thrusterSound.pause();
+      thrusterSound.currentTime = 0;
     }
   }
 }));

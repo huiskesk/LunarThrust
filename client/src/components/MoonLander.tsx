@@ -8,6 +8,16 @@ const FUEL_CONSUMPTION = 0.5;
 const MAX_SAFE_LANDING_SPEED = 3;
 const MAX_SAFE_HORIZONTAL_SPEED = 2;
 
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  color: string;
+}
+
 export function MoonLander() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>();
@@ -19,7 +29,7 @@ export function MoonLander() {
     fuel, 
     ship, 
     terrain, 
-    landingPad,
+    landingPads,
     updateShip,
     useFuel,
     addScore,
@@ -29,9 +39,11 @@ export function MoonLander() {
     nextLevel
   } = useMoonLander();
   
-  const { playSuccess, playHit } = useAudio();
+  const { playSuccess, playHit, startThruster, stopThruster } = useAudio();
   
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+  const thrusterActiveRef = useRef(false);
+  const particlesRef = useRef<Particle[]>([]);
   
   useEffect(() => {
     const updateSize = () => {
@@ -93,20 +105,39 @@ export function MoonLander() {
       let newVY = ship.vy;
       let newRotation = ship.rotation;
       
+      const anyThrusterActive = fuel > 0 && (
+        keysPressed.current.has('ArrowDown') ||
+        keysPressed.current.has('ArrowLeft') ||
+        keysPressed.current.has('ArrowRight')
+      );
+      
+      if (anyThrusterActive && !thrusterActiveRef.current) {
+        startThruster();
+        thrusterActiveRef.current = true;
+      } else if (!anyThrusterActive && thrusterActiveRef.current) {
+        stopThruster();
+        thrusterActiveRef.current = false;
+      }
+      
       if (fuel > 0) {
         if (keysPressed.current.has('ArrowDown')) {
           newVY -= THRUST_POWER * deltaTime;
           useFuel(FUEL_CONSUMPTION * deltaTime);
+          generateParticles(ship.x, ship.y + 15, 0, 3, ship.rotation);
         }
         if (keysPressed.current.has('ArrowLeft')) {
           newVX -= THRUST_POWER * deltaTime;
           useFuel(FUEL_CONSUMPTION * deltaTime);
+          generateParticles(ship.x + 10 * Math.cos(ship.rotation), ship.y + 10 * Math.sin(ship.rotation), 2, 0, ship.rotation);
         }
         if (keysPressed.current.has('ArrowRight')) {
           newVX += THRUST_POWER * deltaTime;
           useFuel(FUEL_CONSUMPTION * deltaTime);
+          generateParticles(ship.x - 10 * Math.cos(ship.rotation), ship.y - 10 * Math.sin(ship.rotation), -2, 0, ship.rotation);
         }
       }
+      
+      updateParticles(deltaTime);
       
       newVY += GRAVITY * deltaTime;
       
@@ -141,8 +172,59 @@ export function MoonLander() {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      stopThruster();
+      thrusterActiveRef.current = false;
     };
-  }, [phase, ship, fuel, terrain, landingPad, updateShip, useFuel, gameOver, levelComplete]);
+  }, [phase, ship, fuel, terrain, landingPads, updateShip, useFuel, gameOver, levelComplete, startThruster, stopThruster]);
+  
+  const generateParticles = (x: number, y: number, vx: number, vy: number, rotation: number) => {
+    const numParticles = 2;
+    for (let i = 0; i < numParticles; i++) {
+      const spread = 0.5;
+      const particle: Particle = {
+        x,
+        y,
+        vx: vx + (Math.random() - 0.5) * spread,
+        vy: vy + (Math.random() - 0.5) * spread,
+        life: 1,
+        maxLife: 1,
+        color: Math.random() > 0.5 ? '#ff6600' : '#ffaa00'
+      };
+      particlesRef.current.push(particle);
+    }
+    
+    if (particlesRef.current.length > 200) {
+      particlesRef.current = particlesRef.current.slice(-200);
+    }
+  };
+  
+  const updateParticles = (deltaTime: number) => {
+    particlesRef.current = particlesRef.current.filter(p => {
+      p.life -= deltaTime * 0.05;
+      p.x += p.vx * deltaTime;
+      p.y += p.vy * deltaTime;
+      p.vy += GRAVITY * 0.5 * deltaTime;
+      return p.life > 0;
+    });
+  };
+  
+  const generateExplosion = (x: number, y: number) => {
+    const numParticles = 50;
+    for (let i = 0; i < numParticles; i++) {
+      const angle = (Math.PI * 2 * i) / numParticles;
+      const speed = 2 + Math.random() * 4;
+      const particle: Particle = {
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        maxLife: 1,
+        color: Math.random() > 0.5 ? '#ff0000' : '#ffaa00'
+      };
+      particlesRef.current.push(particle);
+    }
+  };
   
   const checkCollision = (x: number, y: number, vx: number, vy: number): boolean => {
     const shipBottom = y + 15;
@@ -150,6 +232,7 @@ export function MoonLander() {
     const shipRight = x + 10;
     
     if (x < 0 || x > canvasSize.width || y < 0 || y > canvasSize.height) {
+      generateExplosion(x, y);
       playHit();
       gameOver();
       return true;
@@ -163,27 +246,33 @@ export function MoonLander() {
         const terrainYAtShip = t1.y + ((t2.y - t1.y) * (x - t1.x) / (t2.x - t1.x));
         
         if (shipBottom >= terrainYAtShip) {
-          const isOnLandingPad = 
-            x >= landingPad.x && 
-            x <= landingPad.x + landingPad.width &&
-            Math.abs(terrainYAtShip - landingPad.y) < 2;
+          let landedPad = null;
+          for (const pad of landingPads) {
+            if (x >= pad.x && x <= pad.x + pad.width && Math.abs(terrainYAtShip - pad.y) < 2) {
+              landedPad = pad;
+              break;
+            }
+          }
           
-          if (isOnLandingPad) {
+          if (landedPad) {
             const speed = Math.sqrt(vx * vx + vy * vy);
             const isSlowEnough = Math.abs(vy) < MAX_SAFE_LANDING_SPEED && Math.abs(vx) < MAX_SAFE_HORIZONTAL_SPEED;
             
             if (isSlowEnough) {
-              const landingScore = Math.floor(500 - speed * 50 + (fuel / 10));
+              const baseScore = Math.floor(500 - speed * 50 + (fuel / 10));
+              const landingScore = Math.floor(baseScore * landedPad.bonus);
               addScore(landingScore);
               playSuccess();
               levelComplete();
               return true;
             } else {
+              generateExplosion(x, y);
               playHit();
               gameOver();
               return true;
             }
           } else {
+            generateExplosion(x, y);
             playHit();
             gameOver();
             return true;
@@ -226,16 +315,34 @@ export function MoonLander() {
     ctx.fill();
     ctx.stroke();
     
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(landingPad.x, landingPad.y);
-    ctx.lineTo(landingPad.x + landingPad.width, landingPad.y);
-    ctx.stroke();
+    landingPads.forEach(pad => {
+      let color = '#00ff00';
+      let label = 'EASY';
+      if (pad.bonus >= 1.5) {
+        color = '#ff0000';
+        label = 'HARD';
+      } else if (pad.bonus >= 1.0) {
+        color = '#ffff00';
+        label = 'MEDIUM';
+      }
+      
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(pad.x, pad.y);
+      ctx.lineTo(pad.x + pad.width, pad.y);
+      ctx.stroke();
+      
+      ctx.fillStyle = color;
+      ctx.font = '12px monospace';
+      ctx.fillText(`${label} x${pad.bonus.toFixed(1)}`, pad.x + 5, pad.y - 10);
+    });
     
-    ctx.fillStyle = '#00ff00';
-    ctx.font = '12px monospace';
-    ctx.fillText('LAND HERE', landingPad.x + 5, landingPad.y - 10);
+    particlesRef.current.forEach(p => {
+      const opacity = p.life / p.maxLife;
+      ctx.fillStyle = p.color + Math.floor(opacity * 255).toString(16).padStart(2, '0');
+      ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+    });
     
     ctx.save();
     ctx.translate(ship.x, ship.y);
