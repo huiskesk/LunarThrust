@@ -64,7 +64,11 @@ export function MoonLanderMenu() {
               opacity: 0.8
             }}>
               <div>Navigate your lunar module to a safe landing</div>
-              <div style={{ marginTop: '20px' }}>
+              <div style={{ 
+                marginTop: '20px',
+                color: '#ffff00',
+                textShadow: '0 0 10px rgba(255,255,0,0.5)'
+              }}>
                 ← LEFT THRUST<br />
                 ↓ DOWN THRUST<br />
                 → RIGHT THRUST
