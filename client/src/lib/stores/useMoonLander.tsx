@@ -79,7 +79,7 @@ export const useMoonLander = create<MoonLanderState>()(
         ship: {
           x: 100,
           y: 50,
-          vx: 20,
+          vx: 2,
           vy: 0,
           rotation: 0,
         }
@@ -105,7 +105,7 @@ export const useMoonLander = create<MoonLanderState>()(
         ship: {
           x: 100,
           y: 50,
-          vx: 20,
+          vx: 2,
           vy: 0,
           rotation: 0,
         }
@@ -152,8 +152,8 @@ export const useMoonLander = create<MoonLanderState>()(
       const terrain: TerrainPoint[] = [];
       const segments = 20 + level * 2;
       const baseRoughness = 20 + level * 10;
-      const maxHeight = canvasHeight * 0.7;
-      const minHeight = canvasHeight * 0.4;
+      const maxHeight = canvasHeight * 0.9;
+      const minHeight = canvasHeight * 0.7;
       
       for (let i = 0; i <= segments; i++) {
         const x = (i / segments) * canvasWidth;
