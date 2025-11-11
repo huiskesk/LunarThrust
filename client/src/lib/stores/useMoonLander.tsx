@@ -79,7 +79,7 @@ export const useMoonLander = create<MoonLanderState>()(
         ship: {
           x: 100,
           y: 50,
-          vx: 2,
+          vx: 0.5,
           vy: 0,
           rotation: 0,
         }
@@ -105,7 +105,7 @@ export const useMoonLander = create<MoonLanderState>()(
         ship: {
           x: 100,
           y: 50,
-          vx: 2,
+          vx: 0.5,
           vy: 0,
           rotation: 0,
         }

@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useMoonLander } from "@/lib/stores/useMoonLander";
 import { useAudio } from "@/lib/stores/useAudio";
 
-const GRAVITY = 0.15;
-const THRUST_POWER = 0.3;
+const GRAVITY = 0.02;
+const THRUST_POWER = 0.08;
 const FUEL_CONSUMPTION = 0.5;
-const MAX_SAFE_LANDING_SPEED = 3;
-const MAX_SAFE_HORIZONTAL_SPEED = 2;
+const MAX_SAFE_LANDING_SPEED = 2;
+const MAX_SAFE_HORIZONTAL_SPEED = 1.5;
 
 interface Particle {
   x: number;
