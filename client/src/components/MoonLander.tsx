@@ -3,7 +3,8 @@ import { useMoonLander } from "@/lib/stores/useMoonLander";
 import { useAudio } from "@/lib/stores/useAudio";
 
 const GRAVITY = 0.02;
-const THRUST_POWER = 0.12;
+const VERTICAL_THRUST_POWER = 0.12;
+const HORIZONTAL_THRUST_POWER = 0.03;
 const FUEL_CONSUMPTION = 0.5;
 const MAX_SAFE_LANDING_SPEED = 2;
 const MAX_SAFE_HORIZONTAL_SPEED = 1.5;
@@ -123,17 +124,17 @@ export function MoonLander() {
       
       if (fuel > 0) {
         if (keysPressed.current.has('ArrowDown')) {
-          newVY -= THRUST_POWER * deltaTime;
+          newVY -= VERTICAL_THRUST_POWER * deltaTime;
           useFuel(FUEL_CONSUMPTION * deltaTime);
           generateParticles(ship.x, ship.y + 15, 0, 3, ship.rotation);
         }
         if (keysPressed.current.has('ArrowLeft')) {
-          newVX -= THRUST_POWER * deltaTime;
+          newVX -= HORIZONTAL_THRUST_POWER * deltaTime;
           useFuel(FUEL_CONSUMPTION * deltaTime);
           generateParticles(ship.x + 10 * Math.cos(ship.rotation), ship.y + 10 * Math.sin(ship.rotation), 2, 0, ship.rotation);
         }
         if (keysPressed.current.has('ArrowRight')) {
-          newVX += THRUST_POWER * deltaTime;
+          newVX += HORIZONTAL_THRUST_POWER * deltaTime;
           useFuel(FUEL_CONSUMPTION * deltaTime);
           generateParticles(ship.x - 10 * Math.cos(ship.rotation), ship.y - 10 * Math.sin(ship.rotation), -2, 0, ship.rotation);
         }
