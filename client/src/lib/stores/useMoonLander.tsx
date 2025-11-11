@@ -42,6 +42,7 @@ interface MoonLanderState {
   useFuel: (amount: number) => void;
   addScore: (points: number) => void;
   generateTerrain: (level: number, canvasWidth: number, canvasHeight: number) => void;
+  initializeShipPosition: (canvasWidth: number) => void;
   reset: () => void;
 }
 
@@ -204,6 +205,19 @@ export const useMoonLander = create<MoonLanderState>()(
         terrain,
         landingPads
       });
+    },
+    
+    initializeShipPosition: (canvasWidth) => {
+      set((state) => ({
+        ship: {
+          ...state.ship,
+          x: canvasWidth / 2,
+          y: 50,
+          vx: 0.5,
+          vy: 0,
+          rotation: 0
+        }
+      }));
     },
     
     reset: () => {

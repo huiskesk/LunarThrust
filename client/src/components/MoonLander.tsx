@@ -3,7 +3,7 @@ import { useMoonLander } from "@/lib/stores/useMoonLander";
 import { useAudio } from "@/lib/stores/useAudio";
 
 const GRAVITY = 0.02;
-const THRUST_POWER = 0.08;
+const THRUST_POWER = 0.12;
 const FUEL_CONSUMPTION = 0.5;
 const MAX_SAFE_LANDING_SPEED = 2;
 const MAX_SAFE_HORIZONTAL_SPEED = 1.5;
@@ -36,6 +36,7 @@ export function MoonLander() {
     gameOver,
     levelComplete,
     generateTerrain,
+    initializeShipPosition,
     nextLevel
   } = useMoonLander();
   
@@ -61,8 +62,9 @@ export function MoonLander() {
   useEffect(() => {
     if (phase === "playing" && terrain.length === 0) {
       generateTerrain(level, canvasSize.width, canvasSize.height);
+      initializeShipPosition(canvasSize.width);
     }
-  }, [phase, level, terrain.length, canvasSize, generateTerrain]);
+  }, [phase, level, terrain.length, canvasSize, generateTerrain, initializeShipPosition]);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
